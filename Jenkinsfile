@@ -14,18 +14,27 @@ pipeline {
             }
         }
 
-        stage('Test Maven') {
+         stage('Test Maven') {
             steps {
-            //    sh 'mvn test'
-                bat 'mvn test'
+                script {
+                    if (isUnix()) {
+                        // Linux or MacOS
+                        sh 'mvn test'
+                    } else {
+                        bat 'mvn test'  // Windows
+                    }
+                }
             }
         }
-
-
         stage('Build Maven') {
             steps {
-            //    sh 'mvn clean install'
-                bat 'mvn clean install'
+                script {
+                    if (isUnix()) {
+                        sh 'mvn clean install'
+                    } else {
+                        bat 'mvn clean install'
+                    }
+                }
             }
         }
 
