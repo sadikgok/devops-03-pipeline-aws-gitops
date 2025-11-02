@@ -29,7 +29,7 @@ pipeline {
             }
         }
 
-
+/*
         stage('Docker Image') {
             steps {
             //    sh 'docker build  -t mimaraslan/devops-application:latest   .'
@@ -73,7 +73,7 @@ pipeline {
                
             }
         }
-
+*/
 
     }
 
