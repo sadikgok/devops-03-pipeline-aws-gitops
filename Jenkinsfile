@@ -38,6 +38,27 @@ pipeline {
             }
         }
 
+        stage("Sonarqube Analysis") {
+            steps {
+                withSonarQubeEnv('SonarTokenForJenkins') {
+                    sh """
+                        $SCANNER_HOME/bin/sonarqube-scanner \
+                        -Dsonar.projectName=devops-03-pipeline-aws-gitops\
+                        -Dsonar.projectKey=devops-03-pipeline-aws-gitops
+                    """
+                }
+            }
+        }
+
+
+       stage("Quality Gate"){
+           steps {
+               script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'SonarTokenForJenkins'
+                }
+            }
+        }
+
 /*
         stage('Docker Image') {
             steps {
