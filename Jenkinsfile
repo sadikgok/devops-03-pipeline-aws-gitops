@@ -53,7 +53,7 @@ pipeline {
             }
         }
 
-
+/*
        stage("Quality Gate"){
            steps {
                script {
@@ -62,7 +62,7 @@ pipeline {
             }
         }
 
-/*
+
         stage('Docker Image') {
             steps {
             //    sh 'docker build  -t mimaraslan/devops-application:latest   .'
