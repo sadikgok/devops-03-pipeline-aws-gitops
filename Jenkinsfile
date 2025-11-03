@@ -75,7 +75,7 @@ pipeline {
         stage('Build & Push Docker Image to DockerHub') {
             steps {
                 script {
-                    docker.withRegistry('', DOCKER_LOGIN) {
+                    docker.withRegistry('', DOCKER_ID_LOGIN) {
                         docker_image = docker.build "${IMAGE_NAME}"
                         docker_image.push("${IMAGE_TAG}")
                         docker_image.push("latest")
