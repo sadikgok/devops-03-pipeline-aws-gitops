@@ -7,7 +7,7 @@ pipeline {
     }
 
         environment {
-        APP_NAME = "devops-03-pipeline-aws"
+        APP_NAME = "devops-03-pipeline-aws-gitops"
         RELEASE = "1.0"
         DOCKER_USER = "sadikgok"
         DOCKER_ID_LOGIN = 'dockerhub-sadikgok'
