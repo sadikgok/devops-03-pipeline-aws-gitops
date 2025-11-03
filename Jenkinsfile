@@ -38,23 +38,20 @@ pipeline {
             }
         }
 
-      stage("Sonarqube Analysis") {
-        steps {
-        // Sonar Scanner'ı tool komutuyla yükle
-            def scannerHome = tool 'sonarqube-scanner' // Buraya Tools'taki adını yazın
-        
-            withSonarQubeEnv('SonarTokenForJenkins') {
-                sh """
-                    # Yüklenen scanner'ın yolunu kullanın
-                    ${scannerHome}/bin/sonar-scanner \
-                    -Dsonar.projectName=devops-03-pipeline-aws-gitops \
-                    -Dsonar.projectKey=devops-03-pipeline-aws-gitops \
-                    -Dsonar.sources=.
-                """
+       stage("SonarQube Analysis") {
+            steps {
+                script {
+                    withSonarQubeEnv(credentialsId: 'SonarTokenForJenkins') {
+                        if (isUnix()) {
+                            // Linux or MacOS
+                            sh "mvn sonar:sonar"
+                        } else {
+                            bat 'mvn sonar:sonar'  // Windows
+                        }
+                    }
+                }
             }
         }
-    }
-}
 
 
        stage("Quality Gate"){
