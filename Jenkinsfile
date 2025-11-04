@@ -237,6 +237,39 @@ pipeline {
                 ]
             )
         }
+
+        success {
+        echo "Pipeline başarılı. Docker imajları temizleniyor..."
+        
+        script {
+            def REPO_NAME = "${IMAGE_NAME}"
+            
+            sh """
+                echo "Eski imajlar için temizlik başlatılıyor (Son 3 imaj korunacak)..."
+                
+                # Proje imajlarını sırala, en yenileri (ilk 3) hariç tut
+                IMAGES_TO_DELETE=\$(
+                    docker images --filter "reference=${REPO_NAME}:*" -a \
+                    --format "{{.CreatedAt}}\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$2}'
+                )
+
+                if [ -z "\$IMAGES_TO_DELETE" ]; then
+                    echo "Silinecek eski proje imajı bulunamadı."
+                else
+                    echo "Silinecek imaj ID'leri: \$IMAGES_TO_DELETE"
+                    echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
+                    echo "Eski proje imajları başarıyla temizlendi."
+                fi
+                
+                # Kullanılmayan konteyner, network ve volume'leri temizle (Güvenli Prune)
+                echo "Kullanılmayan genel Docker nesneleri temizleniyor..."
+                docker container prune -f
+                docker network prune -f 
+                docker volume prune -f
+            """
+            }
+        }
     }
+
 
 }
