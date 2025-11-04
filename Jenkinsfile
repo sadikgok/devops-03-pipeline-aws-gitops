@@ -145,7 +145,12 @@ pipeline {
             }
         }
         
-    
+    stage('Download Trivy Template') {
+    steps {
+        sh 'curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -o html.tpl'
+    }
+}
+
 
         // 4. AŞAMA: HTML Raporu Oluşturma
         stage("Generate HTML Report") {
