@@ -17,6 +17,7 @@ pipeline {
 
         // Trivy rapor dosyalarının dinamik isimleri
         TRIVY_JSON_REPORT = "trivy-report-${IMAGE_TAG}.json"
+        TRIVY_HTML_TEMPLATE = "html.tpl"
         TRIVY_HTML_REPORT = "trivy-report-${IMAGE_TAG}.html"
     }
 
