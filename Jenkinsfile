@@ -28,7 +28,7 @@ pipeline {
                 checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/sadikgok/devops-03-pipeline-aws-gitops']])
             }
         }
-/*
+
          stage('Test Maven') {
             steps {
                 script {
@@ -52,7 +52,7 @@ pipeline {
                 }
             }
         }
-*/
+
        stage("SonarQube Analysis") {
             steps {
                 script {
