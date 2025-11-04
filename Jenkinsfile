@@ -149,39 +149,27 @@ pipeline {
 
         // 4. AŞAMA: HTML Raporu Oluşturma
         stage("Generate HTML Report") {
-            steps {
-                script {
-                    echo "Trivy JSON raporu HTML'e dönüştürülüyor..."
+        steps {
+            script {
+                echo "Trivy JSON raporu HTML'e dönüştürülüyor (convert modu)..."
 
-                    // Seçenek 1: GitHub'dan html.tpl indirmişsen, onu kullan
-                    // Seçenek 2: Dahili '@html' template'ini kullan (indirmeye gerek yok)
-                    def USE_INTERNAL_TEMPLATE = true
+                // html.tpl dosyasını indirdiysen, onu kullan
+                sh """
+                    docker run --rm \
+                        -v "${WORKSPACE}:/report" \
+                        aquasec/trivy convert \
+                        --format template \
+                        --template /report/html.tpl \
+                        /report/${TRIVY_JSON_REPORT} \
+                        --output /report/${TRIVY_HTML_REPORT}
+                """
 
-                    if (USE_INTERNAL_TEMPLATE) {
-                        sh """
-                            docker run --rm \
-                                -v "${WORKSPACE}:/report" \
-                                aquasec/trivy template \
-                                --template '@html' \
-                                --input /report/${TRIVY_JSON_REPORT} \
-                                --output /report/${TRIVY_HTML_REPORT}
-                        """
-                    } else {
-                        sh """
-                            docker run --rm \
-                                -v "${WORKSPACE}:/report" \
-                                aquasec/trivy template \
-                                --template /report/html.tpl \
-                                --input /report/${TRIVY_JSON_REPORT} \
-                                --output /report/${TRIVY_HTML_REPORT}
-                        """
-                    }
-
-                    echo "HTML raporu oluşturuldu: ${TRIVY_HTML_REPORT}"
-                    sh "ls -lh /report || true"
+                echo "HTML raporu oluşturuldu: ${TRIVY_HTML_REPORT}"
+                sh "ls -lh ${WORKSPACE} || true"
                 }
             }
         }
+
 
 
 /*
