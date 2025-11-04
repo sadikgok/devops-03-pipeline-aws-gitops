@@ -224,21 +224,11 @@ pipeline {
     post {
         always {
             echo "Trivy has been published report..."
-            
-            // HTML Publisher Plugin kullanımı
-            publishHTML(
-                target: [
-                    allowMissing         : false, 
-                    alwaysLinkToLastBuild: true,  
-                    keepAll              : true,  
-                    reportDir            : "${WORKSPACE}",
-                    reportFiles          : "${TRIVY_HTML_REPORT}",
-                    reportName           : "Trivy Security Report - ${IMAGE_TAG}"
-                ]
-            )
+            // HTML raporu yayımlama (Pipeline fail etse bile raporu kaydetmek için)
+            publishHTML( /* ... */ ) 
         }
-
-            success {
+        
+        success {
             // Pipeline başarılı ise bu blok çalışır.
             echo "Pipeline başarılı. Docker imajları temizleniyor..."
             
@@ -274,6 +264,9 @@ pipeline {
                     }
                 }
             }
+            
+            // Workspace temizliği (tüm dosyaları siler)
+            //cleanWs(cleanWhenAborted: false, cleanWhenFailure: false, cleanWhenUnstable: false, cleanWhenNotBuilt: false, cleanWhenSuccess: true)
         }
     }
 }
