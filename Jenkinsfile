@@ -156,12 +156,18 @@ pipeline {
         stage("Generate HTML Report"){
             steps {
                 script {
-                    def html_command = "docker run --rm -v ${WORKSPACE}:/report aquasec/trivy convert " + 
-                               "--format template --template '/report/${TRIVY_HTML_TEMPLATE}' " + // Burası değişti!
-                               "/report/${TRIVY_JSON_REPORT} " +
-                               "--output /report/${TRIVY_HTML_REPORT}"
-
-                    sh html_command
+                    // NOT: ${WORKSPACE} ve diğer değişkenler Groovy tarafından çözülür, 
+                    // ancak shell komutunun içi daha güvenilir hale gelir.
+                    sh '''
+                        echo "JSON'dan HTML'e dönüştürme başlatılıyor..."
+                        
+                        docker run --rm -v "${WORKSPACE}:/report" aquasec/trivy convert \
+                        --format template \
+                        --template /report/html.tpl \
+                        /report/${TRIVY_JSON_REPORT} \
+                        --output /report/${TRIVY_HTML_REPORT}
+                    '''
+                    echo "Rapor oluşturma tamamlandı. Boyut: ${TRIVY_HTML_REPORT} dosyasını kontrol edin."
                 }
             }
         }
@@ -230,6 +236,10 @@ pipeline {
                     reportName           : "Trivy Security Report - ${IMAGE_TAG}"
                 ]
             )
+        }
+        success {
+            // Pipeline başarılı tamamlanırsa temizlik yap
+            cleanWs(cleanWhenAborted: false, cleanWhenFailure: false, cleanWhenUnstable: false, cleanWhenNotBuilt: false, cleanWhenSuccess: true)
         }
     }
 
