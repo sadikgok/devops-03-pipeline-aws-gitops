@@ -144,17 +144,15 @@ pipeline {
             }
         }
 
-                // 🧹 Remote Docker Hub Cleanup Stage
         stage("DockerHub Remote Cleanup") {
             steps {
                 script {
                     echo "🌐 Docker Hub'daki eski imajlar kontrol ediliyor (latest korunacak)..."
 
-                    // Jenkins credentials içindeki Docker Hub Access Token'ı alıyoruz
                     withCredentials([string(credentialsId: 'dockerhub-token', variable: 'DOCKER_HUB_TOKEN')]) {
 
                         def REPO = "sadikgok/devops-03-pipeline-aws-gitops"
-                        def DAYS = 10  // 10 günden eski tag’ler silinecek
+                        def DAYS = 10
                         def API_URL = "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100"
 
                         sh """
@@ -173,7 +171,6 @@ pipeline {
                                     continue
                                 fi
 
-                                # ISO tarih formatını epoch'a çevir
                                 tag_date=\$(date -d "\$date" +%s 2>/dev/null || true)
                                 now_date=\$(date +%s)
                                 days_old=\$(( (now_date - tag_date) / 86400 ))
@@ -192,7 +189,6 @@ pipeline {
                 }
             }
         }
-
     }
 
     post {
@@ -205,7 +201,7 @@ pipeline {
                     keepAll              : true,
                     reportDir            : "${WORKSPACE}",
                     reportFiles          : "${TRIVY_HTML_REPORT}",
-                    reportName           : "Trivy Security Report - ${IMAGE_TAG}"
+                    reportName           : "Trivy Security Report - ${IMAGE_NAME}"
                 ]
             )
         }
@@ -244,6 +240,5 @@ pipeline {
                 """
             }
         }
-
     }
 }
