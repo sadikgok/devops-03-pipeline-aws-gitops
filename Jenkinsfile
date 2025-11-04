@@ -14,6 +14,10 @@ pipeline {
         IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
         IMAGE_TAG = "${RELEASE}.${BUILD_NUMBER}"
         //JENKINS_API_TOKEN = credentials("JENKINS_API_TOKEN")
+
+        // Trivy rapor dosyalarının dinamik isimleri
+        TRIVY_JSON_REPORT = "trivy-report-${IMAGE_TAG}.json"
+        TRIVY_HTML_REPORT = "trivy-report-${IMAGE_TAG}.html"
     }
 
     stages {
@@ -71,16 +75,61 @@ pipeline {
                 }
             }
         }
+        
+        // 1. AŞAMA: Dosya Sistemi Taraması
+        stage("Trivy File System Scan"){
+            steps{
+                script {
+                    if (isUnix()) {
+                        withEnv(["TRIVY_CACHE_DIR=${WORKSPACE}/.trivy-cache"]) {
+                            sh 'trivy fs . > trivyfs.txt'
+                        }
+                    } else {
+                        bat 'set TRIVY_CACHE_DIR=%cd%\\.trivy-cache && trivy fs . > trivyfs.txt'
+                    }
+                }
+            }
+        }
 
-        stage('Build & Push Docker Image to DockerHub') {
+        // 2. AŞAMA: Docker Oluşturma ve Yayınlama
+        stage('Docker Build & Push to DockerHub') {
             steps {
                 script {
                     docker.withRegistry('', DOCKER_ID_LOGIN) {
-                        docker_image = docker.build "${IMAGE_NAME}"
+                        def docker_image = docker.build "${IMAGE_NAME}"
                         docker_image.push("${IMAGE_TAG}")
                         docker_image.push("latest")
                     }
                 }
+            }
+        }
+
+        // 3. AŞAMA: Trivy İmaj Taraması ve Güvenlik Zorunluluğu
+        stage("Trivy Image Scan - Security Gate"){
+            steps{
+                script {
+                    def imageToScan = "${IMAGE_NAME}:${IMAGE_TAG}" 
+                    
+                    withEnv([
+                        "TRIVY_CACHE_DIR=${WORKSPACE}/.trivy-cache",
+                        "TRIVY_TEMP_DIR=${WORKSPACE}/.trivy-temp"  
+                    ]) {
+                        echo "Taranacak İmaj: ${imageToScan}"
+                        
+                        // Önemli: YÜKSEK (HIGH) ve KRİTİK (CRITICAL) açık bulunursa pipeline durur (exit code 1)
+                        // Çıktı JSON formatında raporlama için dosyaya kaydedilir.
+                        sh "trivy image --exit-code 1 --severity CRITICAL,HIGH --format json --output ${TRIVY_JSON_REPORT} ${imageToScan}"
+                    }
+                }
+            }
+        }
+        
+        // 4. AŞAMA: HTML Raporu Oluşturma
+        stage("Generate HTML Report"){
+            steps {
+                // Not: Bu komutun çalışması için Trivy'nin 'html.tpl' şablonuna erişimi olmalıdır.
+                // Eğer hata alırsanız, harici bir dönüştürücü betik kullanmanız gerekebilir.
+                sh "trivy convert --format template --template '@contrib/html.tpl' ${TRIVY_JSON_REPORT} --output ${TRIVY_HTML_REPORT}"
             }
         }
 
@@ -130,6 +179,25 @@ pipeline {
         }
 */
 
+    }
+
+    // POST BLOK: Pipeline başarısız olsa bile raporu yayımla
+    post {
+        always {
+            echo "Trivy raporu yayımlanıyor..."
+            
+            // HTML Publisher Plugin kullanımı
+            publishHTML(
+                target: [
+                    allowMissing         : false, 
+                    alwaysLinkToLastBuild: true,  
+                    keepAll              : true,  
+                    reportDir            : "${WORKSPACE}",
+                    reportFiles          : "${TRIVY_HTML_REPORT}",
+                    reportName           : "Trivy Güvenlik Raporu - ${IMAGE_TAG}"
+                ]
+            )
+        }
     }
 
 }
