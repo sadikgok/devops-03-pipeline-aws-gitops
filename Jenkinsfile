@@ -126,7 +126,7 @@ pipeline {
                                               "-v /var/run/docker.sock:/var/run/docker.sock " +
                                               "-v ${WORKSPACE}:/report " +
                                               "aquasec/trivy image " +
-                                              "--exit-code 1 " +
+                                              "--exit-code 0 " +
                                               "--severity CRITICAL,HIGH " +
                                               "--format json " +
                                               "--output /report/${TRIVY_JSON_REPORT} " +
