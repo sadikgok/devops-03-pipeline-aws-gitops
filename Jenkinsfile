@@ -224,49 +224,19 @@ pipeline {
     post {
         always {
             echo "Trivy has been published report..."
-            // HTML raporu yayımlama (Pipeline fail etse bile raporu kaydetmek için)
-            publishHTML( /* ... */ ) 
-        }
-        
-        success {
-            // Pipeline başarılı ise bu blok çalışır.
-            echo "Pipeline başarılı. Docker imajları temizleniyor..."
             
-            // Buraya eklemelisiniz:
-            stage('Smart Docker Image Cleanup') {
-                steps {
-                    script {
-                        def REPO_NAME = "${IMAGE_NAME}"
-                        
-                        sh """
-                            # Proje imajlarını oluşturulma tarihine göre sırala (Tüm etiketli ve etiketsiz imajlar)
-                            # İlk 3 satırı (en yenileri) atla: tail -n +4
-                            
-                            IMAGES_TO_DELETE=\$(
-                                docker images --filter "reference=${REPO_NAME}:*" -a \
-                                --format "{{.CreatedAt}}\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$2}'
-                            )
-
-                            if [ -z "\$IMAGES_TO_DELETE" ]; then
-                                echo "Silinecek eski imaj bulunamadı."
-                            else
-                                echo "Silinecek imaj ID'leri: \$IMAGES_TO_DELETE"
-                                echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
-                                echo "Eski imajlar başarıyla temizlendi."
-                            fi
-                            
-                            # Kullanılmayan konteyner, network ve volume'leri temizle (Güvenli Prune)
-                            echo "Kullanılmayan konteyner, network ve volume'ler temizleniyor..."
-                            docker container prune -f
-                            docker network prune -f # Opsiyonel
-                            docker volume prune -f
-                        """
-                    }
-                }
-            }
-            
-            // Workspace temizliği (tüm dosyaları siler)
-            //cleanWs(cleanWhenAborted: false, cleanWhenFailure: false, cleanWhenUnstable: false, cleanWhenNotBuilt: false, cleanWhenSuccess: true)
+            // HTML Publisher Plugin kullanımı
+            publishHTML(
+                target: [
+                    allowMissing         : false, 
+                    alwaysLinkToLastBuild: true,  
+                    keepAll              : true,  
+                    reportDir            : "${WORKSPACE}",
+                    reportFiles          : "${TRIVY_HTML_REPORT}",
+                    reportName           : "Trivy Security Report - ${IMAGE_TAG}"
+                ]
+            )
         }
     }
+
 }
