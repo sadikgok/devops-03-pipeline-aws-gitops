@@ -165,71 +165,31 @@ pipeline {
             script {
                 def REPO_NAME = "${IMAGE_NAME}"
                 sh """
-                echo "🧹 Eski imajlar için temizlik başlatılıyor (Son 3 imaj korunacak)..."
+                    echo "🧹 Eski imajlar için temizlik başlatılıyor (Son 3 imaj korunacak)..."
+                    IMAGES_TO_DELETE=\$(
+                        docker images --filter "reference=${REPO_NAME}:*" -a \
+                        --format "{{.CreatedAt}}\\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$NF}'
+                    )
 
-                IMAGES_TO_DELETE=\$(
-                    docker images --filter "reference=${REPO_NAME}:*" -a \
-                    --format "{{.CreatedAt}}\\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$NF}'
-                )
-
-                if [ -z "\$IMAGES_TO_DELETE" ]; then
-                    echo "Silinecek eski proje imajı bulunamadı."
-                else
-                    echo "Silinecek imaj ID'leri: \$IMAGES_TO_DELETE"
-                    echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
-                fi
-
-                echo "🧽 Gerçekten tüm <none> imajlar temizleniyor..."
-                docker images -f "dangling=true" -q | xargs -r docker rmi -f || true
-
-                echo "🧽 Label'sız veya bozuk <none> imajlar da temizleniyor..."
-                docker images | grep '<none>' | awk '{print \$3}' | xargs -r docker rmi -f || true
-
-                echo "🧹 Kullanılmayan Docker nesneleri temizleniyor..."
-                docker container prune -f
-                docker network prune -f 
-                docker volume prune -f
-
-                echo "✨ Local Docker temizlik tamamlandı."
-            """
-
-            // 🧹 Remote DockerHub Cleanup (latest korunacak)
-            withCredentials([string(credentialsId: 'dockerhub-token', variable: 'DOCKER_HUB_TOKEN')]) {
-
-                def REPO = "sadikgok/devops-03-pipeline-aws-gitops"
-                def DAYS = 10
-                def API_URL = "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100"
-
-                sh """
-                    echo "🌐 Docker Hub'daki eski imajlar kontrol ediliyor (latest korunacak)..."
-
-                    curl -s -H "Authorization: Bearer ${DOCKER_HUB_TOKEN}" ${API_URL} > tags.json || true
-
-                    if [ ! -s tags.json ]; then
-                        echo "⚠️  Tag listesi alınamadı veya boş döndü."
-                        exit 0
+                    if [ -z "\$IMAGES_TO_DELETE" ]; then
+                        echo "Silinecek eski proje imajı bulunamadı."
+                    else
+                        echo "Silinecek imaj ID'leri: \$IMAGES_TO_DELETE"
+                        echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
                     fi
 
-                    echo "🧮 Eski tag'ler filtreleniyor..."
-                    cat tags.json | jq -r '.results[] | [.name, .last_updated] | @tsv' | while IFS=$'\\t' read -r tag date; do
-                        if [ "\$tag" = "latest" ]; then
-                            echo "⏩ 'latest' tag atlanıyor."
-                            continue
-                        fi
+                    echo "🧽 Gerçekten tüm <none> imajlar temizleniyor..."
+                    docker images -f "dangling=true" -q | xargs -r docker rmi -f || true
 
-                        tag_date=\$(date -d "\$date" +%s 2>/dev/null || true)
-                        now_date=\$(date +%s)
-                        days_old=\$(( (now_date - tag_date) / 86400 ))
+                    echo "🧽 Label'sız veya bozuk <none> imajlar da temizleniyor..."
+                    docker images | grep '<none>' | awk '{print \$3}' | xargs -r docker rmi -f || true
 
-                        if [ \$days_old -gt ${DAYS} ]; then
-                            echo "🗑️  Siliniyor: \$tag (\$days_old gün önce oluşturulmuş)"
-                            curl -s -X DELETE -H "Authorization: Bearer ${DOCKER_HUB_TOKEN}" "https://hub.docker.com/v2/repositories/${REPO}/tags/\$tag/" || true
-                        else
-                            echo "✅ \$tag tag'i yeni (\$days_old gün), korunuyor."
-                        fi
-                    done
+                    echo "🧹 Kullanılmayan Docker nesneleri temizleniyor..."
+                    docker container prune -f
+                    docker network prune -f 
+                    docker volume prune -f
 
-                    echo "✨ Docker Hub temizliği tamamlandı."
+                    echo "✨ Docker temizlik tamamlandı."
                 """
             }
         }
