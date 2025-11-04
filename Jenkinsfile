@@ -146,25 +146,25 @@ pipeline {
     }
 
     post {
-    always {
-        echo "📢 Trivy raporu yayınlanıyor..."
-        publishHTML(
-            target: [
-                allowMissing         : false,
-                alwaysLinkToLastBuild: true,
-                keepAll              : true,
-                reportDir            : "${WORKSPACE}",
-                reportFiles          : "${TRIVY_HTML_REPORT}",
-                reportName           : "Trivy Security Report - ${IMAGE_NAME}"
-            ]
-        )
-    }
+        always {
+            echo "📢 Trivy raporu yayınlanıyor..."
+            publishHTML(
+                target: [
+                    allowMissing         : false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll              : true,
+                    reportDir            : "${WORKSPACE}",
+                    reportFiles          : "${TRIVY_HTML_REPORT}",
+                    reportName           : "Trivy Security Report - ${IMAGE_TAG}"
+                ]
+            )
+        }
 
-    success {
-        echo "✅ Pipeline başarılı. Docker imajları ve DockerHub temizliği başlatılıyor..."
-        script {
-            def REPO_NAME = "${IMAGE_NAME}"
-            sh """
+        success {
+            echo "✅ Pipeline başarılı. Docker imajları temizleniyor..."
+            script {
+                def REPO_NAME = "${IMAGE_NAME}"
+                sh """
                 echo "🧹 Eski imajlar için temizlik başlatılıyor (Son 3 imaj korunacak)..."
 
                 IMAGES_TO_DELETE=\$(
@@ -234,6 +234,4 @@ pipeline {
             }
         }
     }
-}
-
 }
