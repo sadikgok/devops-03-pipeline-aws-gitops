@@ -153,27 +153,32 @@ pipeline {
 
 
         // 4. AŞAMA: HTML Raporu Oluşturma
-        stage("Generate HTML Report") {
-        steps {
-            script {
-                echo "Trivy JSON raporu HTML'e dönüştürülüyor (convert modu)..."
+    stage("Trivy Image Scan - JSON + HTML") {
+    steps {
+        script {
+            def imageToScan = "${IMAGE_NAME}:${IMAGE_TAG}"
 
-                // html.tpl dosyasını indirdiysen, onu kullan
-                sh """
-                    docker run --rm \
-                        -v "${WORKSPACE}:/report" \
-                        aquasec/trivy convert \
-                        --format template \
-                        --template /report/html.tpl \
-                        /report/${TRIVY_JSON_REPORT} \
-                        --output /report/${TRIVY_HTML_REPORT}
-                """
+            sh """
+                docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v ${WORKSPACE}:/report \
+                    aquasec/trivy image ${imageToScan} \
+                    --format template \
+                    --template /report/html.tpl \
+                    --output /report/${TRIVY_HTML_REPORT}
 
-                echo "HTML raporu oluşturuldu: ${TRIVY_HTML_REPORT}"
-                sh "ls -lh ${WORKSPACE} || true"
-                }
+                # Aynı taramadan JSON formatını da üretelim
+                docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v ${WORKSPACE}:/report \
+                    aquasec/trivy image ${imageToScan} \
+                    --format json \
+                    --output /report/${TRIVY_JSON_REPORT}
+            """
             }
         }
+    }
+
 
 
 
