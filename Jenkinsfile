@@ -179,8 +179,11 @@ pipeline {
                         echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
                     fi
 
-                    echo "🧽 Dangling (<none>) imajlar temizleniyor..."
-                    docker image prune -f || true
+                    echo "🧽 Gerçekten tüm <none> imajlar temizleniyor..."
+                    docker images -f "dangling=true" -q | xargs -r docker rmi -f || true
+
+                    echo "🧽 Label'sız veya bozuk <none> imajlar da temizleniyor..."
+                    docker images | grep '<none>' | awk '{print \$3}' | xargs -r docker rmi -f || true
 
                     echo "🧹 Kullanılmayan Docker nesneleri temizleniyor..."
                     docker container prune -f
