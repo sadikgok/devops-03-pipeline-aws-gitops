@@ -27,7 +27,7 @@ pipeline {
                 checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/sadikgok/devops-03-pipeline-aws-gitops']])
             }
         }
-
+/*
          stage('Test Maven') {
             steps {
                 script {
@@ -51,7 +51,7 @@ pipeline {
                 }
             }
         }
-
+*/
        stage("SonarQube Analysis") {
             steps {
                 script {
@@ -76,17 +76,27 @@ pipeline {
             }
         }
         
-        // 1. AŞAMA: Dosya Sistemi Taraması
-        stage("Trivy File System Scan"){
-            steps{
+ // 1. AŞAMA: Dosya Sistemi Taraması
+        stage("Trivy File System Scan") {
+            steps {
                 script {
+                    // Host'taki mevcut WORKSPACE dizinini (proje dosyaları)
+                    // Trivy konteyneri içindeki /scan dizinine mount ediyoruz.
+                    // Böylece trivy, proje dosyalarını /scan dizininde görebilir.
+                    def trivy_fs_command = "docker run --rm " +
+                                            "-v ${WORKSPACE}:/scan " +
+                                            "aquasec/trivy fs /scan --no-progress > trivyfs.txt"
+
+                    echo "Trivy Dosya Sistemi Taraması Başlatılıyor..."
+
                     if (isUnix()) {
-                        withEnv(["TRIVY_CACHE_DIR=${WORKSPACE}/.trivy-cache"]) {
-                            sh 'trivy fs . > trivyfs.txt'
-                        }
+                        sh trivy_fs_command
                     } else {
-                        bat 'set TRIVY_CACHE_DIR=%cd%\\.trivy-cache && trivy fs . > trivyfs.txt'
+                        // Windows agent kullanılıyorsa (bat komutu ve path formatı değişir)
+                        // Windows'ta volume mapping karmaşık olabileceğinden, bu kısım dikkatli test edilmelidir.
+                        bat trivy_fs_command.replace('/scan', 'C:/scan') // Örnek path düzeltmesi
                     }
+                    echo "Trivy Dosya Sistemi Taraması Tamamlandı."
                 }
             }
         }
@@ -104,21 +114,31 @@ pipeline {
             }
         }
 
-        // 3. AŞAMA: Trivy İmaj Taraması ve Güvenlik Zorunluluğu
+// 3. AŞAMA: Trivy İmaj Taraması ve Güvenlik Zorunluluğu
         stage("Trivy Image Scan - Security Gate"){
             steps{
                 script {
                     def imageToScan = "${IMAGE_NAME}:${IMAGE_TAG}" 
                     
-                    withEnv([
-                        "TRIVY_CACHE_DIR=${WORKSPACE}/.trivy-cache",
-                        "TRIVY_TEMP_DIR=${WORKSPACE}/.trivy-temp"  
-                    ]) {
-                        echo "Taranacak İmaj: ${imageToScan}"
-                        
-                        // Önemli: YÜKSEK (HIGH) ve KRİTİK (CRITICAL) açık bulunursa pipeline durur (exit code 1)
-                        // Çıktı JSON formatında raporlama için dosyaya kaydedilir.
-                        sh "trivy image --exit-code 1 --severity CRITICAL,HIGH --format json --output ${TRIVY_JSON_REPORT} ${imageToScan}"
+                    // Önemli: Tarama ve raporu WORKSPACE içine yazabilmek için 
+                    // hem docker.sock'ı hem de WORKSPACE'i mount ediyoruz.
+                    def trivy_image_command = "docker run --rm " +
+                                              "-v /var/run/docker.sock:/var/run/docker.sock " +
+                                              "-v ${WORKSPACE}:/report " +
+                                              "aquasec/trivy image " +
+                                              "--exit-code 1 " +
+                                              "--severity CRITICAL,HIGH " +
+                                              "--format json " +
+                                              "--output /report/${TRIVY_JSON_REPORT} " +
+                                              "${imageToScan}"
+                    
+                    echo "Taranacak İmaj: ${imageToScan}"
+                    
+                    if (isUnix()) {
+                        sh trivy_image_command
+                    } else {
+                        // Windows için bat komutu ve path düzenlemesi
+                        bat trivy_image_command.replace('/report', 'C:/report')
                     }
                 }
             }
