@@ -179,7 +179,7 @@ pipeline {
                             -v ${WORKSPACE}:/report \
                             aquasec/trivy image ${imageToScan} \
                             --format template \
-                            --template /report/html.tpl \
+                            --template "@html" \
                             --output /report/${TRIVY_HTML_REPORT}
                     """
 
@@ -187,7 +187,7 @@ pipeline {
                     sh "ls -lh ${WORKSPACE} | grep trivy-report || true"
                 }
             }
-}
+    }
 
 
 
