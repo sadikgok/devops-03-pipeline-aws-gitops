@@ -144,12 +144,24 @@ pipeline {
             }
         }
         
+        stage('Download Trivy Template') {
+            steps {
+        // Şablonun resmi GitHub URL'si
+                sh 'curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -o html.tpl'
+            }
+        }
+
         // 4. AŞAMA: HTML Raporu Oluşturma
         stage("Generate HTML Report"){
             steps {
-                // Not: Bu komutun çalışması için Trivy'nin 'html.tpl' şablonuna erişimi olmalıdır.
-                // Eğer hata alırsanız, harici bir dönüştürücü betik kullanmanız gerekebilir.
-                sh "trivy convert --format template --template '@contrib/html.tpl' ${TRIVY_JSON_REPORT} --output ${TRIVY_HTML_REPORT}"
+                script {
+                    def html_command = "docker run --rm -v ${WORKSPACE}:/report aquasec/trivy convert " + 
+                               "--format template --template '/report/${TRIVY_HTML_TEMPLATE}' " + // Burası değişti!
+                               "/report/${TRIVY_JSON_REPORT} " +
+                               "--output /report/${TRIVY_HTML_REPORT}"
+
+                    sh html_command
+                }
             }
         }
 
@@ -204,7 +216,7 @@ pipeline {
     // POST BLOK: Pipeline başarısız olsa bile raporu yayımla
     post {
         always {
-            echo "Trivy raporu yayımlanıyor..."
+            echo "Trivy has been published report..."
             
             // HTML Publisher Plugin kullanımı
             publishHTML(
@@ -214,7 +226,7 @@ pipeline {
                     keepAll              : true,  
                     reportDir            : "${WORKSPACE}",
                     reportFiles          : "${TRIVY_HTML_REPORT}",
-                    reportName           : "Trivy Güvenlik Raporu - ${IMAGE_TAG}"
+                    reportName           : "Trivy Security Report - ${IMAGE_TAG}"
                 ]
             )
         }
