@@ -194,5 +194,55 @@ pipeline {
                 """
             }
         }
+
+                // 🧹 Remote Docker Hub Cleanup Stage
+        stage("DockerHub Remote Cleanup") {
+            steps {
+                script {
+                    echo "🌐 Docker Hub'daki eski imajlar kontrol ediliyor (latest korunacak)..."
+
+                    // Jenkins credentials içindeki Docker Hub Access Token'ı alıyoruz
+                    withCredentials([string(credentialsId: 'dockerhub-token', variable: 'DOCKER_HUB_TOKEN')]) {
+
+                        def REPO = "sadikgok/devops-03-pipeline-aws-gitops"
+                        def DAYS = 10  // 10 günden eski tag’ler silinecek
+                        def API_URL = "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100"
+
+                        sh """
+                            echo "🔍 Docker Hub API çağrısı yapılıyor..."
+                            curl -s -H "Authorization: Bearer ${DOCKER_HUB_TOKEN}" ${API_URL} > tags.json || true
+
+                            if [ ! -s tags.json ]; then
+                                echo "⚠️  Tag listesi alınamadı veya boş döndü."
+                                exit 0
+                            fi
+
+                            echo "🧮 Eski tag'ler filtreleniyor..."
+                            cat tags.json | jq -r '.results[] | [.name, .last_updated] | @tsv' | while IFS=$'\\t' read -r tag date; do
+                                if [ "\$tag" = "latest" ]; then
+                                    echo "⏩ 'latest' tag atlanıyor."
+                                    continue
+                                fi
+
+                                # ISO tarih formatını epoch'a çevir
+                                tag_date=\$(date -d "\$date" +%s 2>/dev/null || true)
+                                now_date=\$(date +%s)
+                                days_old=\$(( (now_date - tag_date) / 86400 ))
+
+                                if [ \$days_old -gt ${DAYS} ]; then
+                                    echo "🗑️  Siliniyor: \$tag (\$days_old gün önce oluşturulmuş)"
+                                    curl -s -X DELETE -H "Authorization: Bearer ${DOCKER_HUB_TOKEN}" "https://hub.docker.com/v2/repositories/${REPO}/tags/\$tag/" || true
+                                else
+                                    echo "✅ \$tag tag'i yeni (\$days_old gün), korunuyor."
+                                fi
+                            done
+
+                            echo "✨ Docker Hub temizliği tamamlandı."
+                        """
+                    }
+                }
+            }
+        }
+
     }
 }
