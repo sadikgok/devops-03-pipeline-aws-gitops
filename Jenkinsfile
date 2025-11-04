@@ -157,7 +157,22 @@ pipeline {
     steps {
         script {
             def imageToScan = "${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Taranacak imaj: ${imageToScan}"
 
+            // Trivy'nin yazma izinlerine takılmaması için
+            sh "chmod 777 ${WORKSPACE} || true"
+
+            // JSON formatlı rapor (güvenlik için)
+            sh """
+                docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v ${WORKSPACE}:/report \
+                    aquasec/trivy image ${imageToScan} \
+                    --format json \
+                    --output /report/${TRIVY_JSON_REPORT}
+            """
+
+            // HTML formatlı rapor (görselleştirme için)
             sh """
                 docker run --rm \
                     -v /var/run/docker.sock:/var/run/docker.sock \
@@ -166,8 +181,25 @@ pipeline {
                     --format template \
                     --template /report/html.tpl \
                     --output /report/${TRIVY_HTML_REPORT}
+            """
 
-                # Aynı taramadan JSON formatını da üretelim
+            echo "JSON ve HTML raporlar oluşturuldu."
+            sh "ls -lh ${WORKSPACE} | grep trivy-report || true"
+        }
+    }
+}
+
+stage("Trivy Image Scan - JSON + HTML") {
+    steps {
+        script {
+            def imageToScan = "${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Taranacak imaj: ${imageToScan}"
+
+            // Trivy'nin yazma izinlerine takılmaması için
+            sh "chmod 777 ${WORKSPACE} || true"
+
+            // JSON formatlı rapor (güvenlik için)
+            sh """
                 docker run --rm \
                     -v /var/run/docker.sock:/var/run/docker.sock \
                     -v ${WORKSPACE}:/report \
@@ -175,9 +207,24 @@ pipeline {
                     --format json \
                     --output /report/${TRIVY_JSON_REPORT}
             """
-            }
+
+            // HTML formatlı rapor (görselleştirme için)
+            sh """
+                docker run --rm \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v ${WORKSPACE}:/report \
+                    aquasec/trivy image ${imageToScan} \
+                    --format template \
+                    --template /report/html.tpl \
+                    --output /report/${TRIVY_HTML_REPORT}
+            """
+
+            echo "JSON ve HTML raporlar oluşturuldu."
+            sh "ls -lh ${WORKSPACE} | grep trivy-report || true"
         }
     }
+}
+
 
 
 
