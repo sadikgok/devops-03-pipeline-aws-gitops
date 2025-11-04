@@ -237,10 +237,6 @@ pipeline {
                 ]
             )
         }
-        /*success {
-            // Pipeline başarılı tamamlanırsa temizlik yap
-            cleanWs(cleanWhenAborted: false, cleanWhenFailure: false, cleanWhenUnstable: false, cleanWhenNotBuilt: false, cleanWhenSuccess: true)
-        }*/
     }
 
 }
