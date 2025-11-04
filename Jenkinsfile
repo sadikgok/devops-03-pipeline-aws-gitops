@@ -89,6 +89,15 @@ pipeline {
                                             "aquasec/trivy fs /scan --no-progress > trivyfs.txt"
 
                     echo "Trivy Dosya Sistemi Taraması Başlatılıyor..."
+                        sh '''
+                            docker run --rm -v ${WORKSPACE}:/report aquasec/trivy:0.67.2 image \
+                            --format json --output /report/trivy-report.json ${IMAGE_NAME}:${IMAGE_TAG}
+
+                            docker run --rm -v ${WORKSPACE}:/report aquasec/trivy:0.67.2 convert \
+                            --format template --template "@/contrib/html.tpl" \
+                            --output /report/trivy-report.html /report/trivy-report.json
+                        '''
+
 
                     if (isUnix()) {
                         sh trivy_fs_command
@@ -144,13 +153,6 @@ pipeline {
                 }
             }
         }
-        
-    stage('Download Trivy Template') {
-    steps {
-        sh 'curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -o html.tpl'
-    }
-}
-
 
         // 4. AŞAMA: HTML Raporu Oluşturma
         stage("Trivy Image Scan - JSON + HTML") {
@@ -164,23 +166,24 @@ pipeline {
 
                     // JSON formatlı rapor (güvenlik için)
                     sh """
-                        docker run --rm \
-                            -v /var/run/docker.sock:/var/run/docker.sock \
-                            -v ${WORKSPACE}:/report \
-                            aquasec/trivy image ${imageToScan} \
-                            --format json \
-                            --output /report/${TRIVY_JSON_REPORT}
+                       docker run --rm \
+                        -v ${WORKSPACE}:/report \
+                        aquasec/trivy:0.67.2 image \
+                        --format json \
+                        --output /report/trivy-report.json \
+                        your-image-name:your-tag
+
                     """
 
                     // HTML formatlı rapor (görselleştirme için)
                     sh """
                         docker run --rm \
-                            -v /var/run/docker.sock:/var/run/docker.sock \
-                            -v ${WORKSPACE}:/report \
-                            aquasec/trivy image ${imageToScan} \
-                            --format template \
-                            --template "@html" \
-                            --output /report/${TRIVY_HTML_REPORT}
+                        -v ${WORKSPACE}:/report \
+                        aquasec/trivy:0.67.2 convert \
+                        --format template \
+                        --template "@/contrib/html.tpl" \
+                        --output /report/trivy-report.html \
+                        /report/trivy-report.json
                     """
 
                     echo "JSON ve HTML raporlar oluşturuldu."
@@ -263,32 +266,30 @@ pipeline {
         
         script {
             def REPO_NAME = "${IMAGE_NAME}"
-            
-         sh """
-                echo "Eski imajlar için temizlik başlatılıyor (Son 3 imaj korunacak)..."
-                
-                # Yeni yaklaşım: Hem ID'yi hem de oluşturulma tarihini getir. ID'yi en sona koy.
-                # Sonra kesme (cut) komutu ile sadece ID'yi al. Bu awk'tan daha güvenlidir.
-                IMAGES_TO_DELETE=\$(
-                    docker images --filter "reference=${REPO_NAME}:*" -a \
-                    --format "{{.CreatedAt}}\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$NF}'
-                )
+                sh """
+                    echo "Eski imajlar için temizlik başlatılıyor (Son 3 imaj korunacak)..."
+                    
+                    IMAGES_TO_DELETE=\$(
+                        docker images --filter "reference=${REPO_NAME}:*" -a \
+                        --format "{{.CreatedAt}}\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$NF}'
+                    )
 
-                if [ -z "\$IMAGES_TO_DELETE" ]; then
-                    echo "Silinecek eski proje imajı bulunamadı."
-                else
-                    echo "Silinecek imaj ID'leri: \$IMAGES_TO_DELETE"
-                    # --no-run-if-empty yerine -r kullanıyoruz.
-                    echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
-                    echo "Eski proje imajları başarıyla temizlendi."
-                fi
-                
-                # Kullanılmayan konteyner, network ve volume'leri temizle (Güvenli Prune)
-                echo "Kullanılmayan genel Docker nesneleri temizleniyor..."
-                docker container prune -f
-                docker network prune -f 
-                docker volume prune -f
-            """
+                    if [ -z "\$IMAGES_TO_DELETE" ]; then
+                        echo "Silinecek eski proje imajı bulunamadı."
+                    else
+                        echo "Silinecek imaj ID'leri: \$IMAGES_TO_DELETE"
+                        echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
+                        echo "Eski proje imajları başarıyla temizlendi."
+                    fi
+
+                    echo "Dangling (<none>) imajlar temizleniyor..."
+                    docker image prune -f || true
+
+                    echo "Kullanılmayan Docker nesneleri temizleniyor..."
+                    docker container prune -f
+                    docker network prune -f 
+                    docker volume prune -f
+                """
             }
         }
     }
