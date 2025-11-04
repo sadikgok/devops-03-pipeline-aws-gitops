@@ -145,32 +145,44 @@ pipeline {
             }
         }
         
-        stage('Download Trivy Template') {
-            steps {
-        // Şablonun resmi GitHub URL'si
-                sh 'curl -L https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -o html.tpl'
-            }
-        }
+    
 
         // 4. AŞAMA: HTML Raporu Oluşturma
-        stage("Generate HTML Report"){
+        stage("Generate HTML Report") {
             steps {
                 script {
-                    // NOT: ${WORKSPACE} ve diğer değişkenler Groovy tarafından çözülür, 
-                    // ancak shell komutunun içi daha güvenilir hale gelir.
-                    sh '''
-                        echo "JSON'dan HTML'e dönüştürme başlatılıyor..."
-                        
-                        docker run --rm -v "${WORKSPACE}:/report" aquasec/trivy convert \
-                        --format template \
-                        --template /report/html.tpl \
-                        /report/${TRIVY_JSON_REPORT} \
-                        --output /report/${TRIVY_HTML_REPORT}
-                    '''
-                    echo "Rapor oluşturma tamamlandı. Boyut: ${TRIVY_HTML_REPORT} dosyasını kontrol edin."
+                    echo "Trivy JSON raporu HTML'e dönüştürülüyor..."
+
+                    // Seçenek 1: GitHub'dan html.tpl indirmişsen, onu kullan
+                    // Seçenek 2: Dahili '@html' template'ini kullan (indirmeye gerek yok)
+                    def USE_INTERNAL_TEMPLATE = true
+
+                    if (USE_INTERNAL_TEMPLATE) {
+                        sh """
+                            docker run --rm \
+                                -v "${WORKSPACE}:/report" \
+                                aquasec/trivy template \
+                                --template '@html' \
+                                --input /report/${TRIVY_JSON_REPORT} \
+                                --output /report/${TRIVY_HTML_REPORT}
+                        """
+                    } else {
+                        sh """
+                            docker run --rm \
+                                -v "${WORKSPACE}:/report" \
+                                aquasec/trivy template \
+                                --template /report/html.tpl \
+                                --input /report/${TRIVY_JSON_REPORT} \
+                                --output /report/${TRIVY_HTML_REPORT}
+                        """
+                    }
+
+                    echo "HTML raporu oluşturuldu: ${TRIVY_HTML_REPORT}"
+                    sh "ls -lh /report || true"
                 }
             }
         }
+
 
 /*
         stage('Docker Image') {
