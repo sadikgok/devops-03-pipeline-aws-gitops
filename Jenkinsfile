@@ -244,19 +244,21 @@ pipeline {
         script {
             def REPO_NAME = "${IMAGE_NAME}"
             
-            sh """
+         sh """
                 echo "Eski imajlar için temizlik başlatılıyor (Son 3 imaj korunacak)..."
                 
-                # Proje imajlarını sırala, en yenileri (ilk 3) hariç tut
+                # Yeni yaklaşım: Hem ID'yi hem de oluşturulma tarihini getir. ID'yi en sona koy.
+                # Sonra kesme (cut) komutu ile sadece ID'yi al. Bu awk'tan daha güvenlidir.
                 IMAGES_TO_DELETE=\$(
                     docker images --filter "reference=${REPO_NAME}:*" -a \
-                    --format "{{.CreatedAt}}\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$2}'
+                    --format "{{.CreatedAt}}\t{{.ID}}" | sort -r | tail -n +4 | awk '{print \$NF}'
                 )
 
                 if [ -z "\$IMAGES_TO_DELETE" ]; then
                     echo "Silinecek eski proje imajı bulunamadı."
                 else
                     echo "Silinecek imaj ID'leri: \$IMAGES_TO_DELETE"
+                    # --no-run-if-empty yerine -r kullanıyoruz.
                     echo "\$IMAGES_TO_DELETE" | xargs -r docker rmi -f
                     echo "Eski proje imajları başarıyla temizlendi."
                 fi
