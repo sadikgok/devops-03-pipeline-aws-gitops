@@ -167,7 +167,7 @@ pipeline {
                 usernameVariable: 'HUB_USER', 
                 passwordVariable: 'HUB_PAT'
             )]) {
-                sh """
+               sh '''#!/usr/bin/env bash
                     set -euo pipefail
                     
                     # REPO_NAME, env.IMAGE_NAME değişkeninizden alınır: sadikgok/devops-03-pipeline-aws-gitops
