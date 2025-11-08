@@ -154,8 +154,6 @@ pipeline {
             }
         }
 
-        stages {
-    // ... (Diğer stage'leriniz buraya gelir: Build, Test, Push, Trigger)
 
     stage('Cleanup Old Docker Tags') {
         environment {
