@@ -145,7 +145,7 @@ pipeline {
         }
        */
     }
-
+/*
     post {
         always {
             // echo " Trivy raporu yayınlanıyor..."
@@ -195,4 +195,5 @@ pipeline {
             }
         }
     }
+    */
 }
