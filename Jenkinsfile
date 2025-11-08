@@ -54,7 +54,7 @@ pipeline {
                 }
             }
         }
-
+/*
         stage("SonarQube Analysis") {
             steps {
                 script {
@@ -92,7 +92,7 @@ pipeline {
                 }
             }
         }
-
+ */
         // 2. AŞAMA: Docker Oluşturma ve Yayınlama
         stage('Docker Build & Push to DockerHub') {
             steps {
@@ -105,7 +105,7 @@ pipeline {
                 }
             }
         }
-
+/*
         // 3. AŞAMA: Trivy İmaj Taraması ve Rapor
         stage("Trivy Image Scan - JSON + HTML") {
             steps {
@@ -143,21 +143,22 @@ pipeline {
                 }
             }
         }
+       */
     }
 
     post {
         always {
-            echo "📢 Trivy raporu yayınlanıyor..."
-            publishHTML(
-                target: [
-                    allowMissing         : false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll              : true,
-                    reportDir            : "${WORKSPACE}",
-                    reportFiles          : "${TRIVY_HTML_REPORT}",
-                    reportName           : "Trivy Security Report - ${IMAGE_TAG}"
-                ]
-            )
+            // echo " Trivy raporu yayınlanıyor..."
+            // publishHTML(
+            //     target: [
+            //         allowMissing         : false,
+            //         alwaysLinkToLastBuild: true,
+            //         keepAll              : true,
+            //         reportDir            : "${WORKSPACE}",
+            //         reportFiles          : "${TRIVY_HTML_REPORT}",
+            //         reportName           : "Trivy Security Report - ${IMAGE_TAG}"
+            //     ]
+            // )
         }
 
         success {
