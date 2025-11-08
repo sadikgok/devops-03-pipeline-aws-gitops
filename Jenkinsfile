@@ -154,72 +154,7 @@ pipeline {
             }
         }
 
-        stage('Cleanup Old Docker Tags') {
-    environment {
-        // Kaç tane son sürümü tutmak istediğiniz
-        KEEP_COUNT = 3 
-    }
-    steps {
-        script {
-            // Jenkins Credentials'ları (Kullanıcı adı ve PAT) ile kimlik doğrulaması yapılır
-            withCredentials([usernamePassword(
-                credentialsId: env.DOCKER_ID_LOGIN, 
-                usernameVariable: 'HUB_USER', 
-                passwordVariable: 'HUB_PAT'
-            )]) {
-               sh '''#!/usr/bin/env bash
-                    set -euo pipefail
-                    
-                    # REPO_NAME, env.IMAGE_NAME değişkeninizden alınır: sadikgok/devops-03-pipeline-aws-gitops
-                    REPO_NAME="${env.IMAGE_NAME}"
-                    
-                    echo "1. Docker Hub JWT tokenı alınıyor..."
-                    # Docker Hub JWT tokenını al
-                    HUB_TOKEN=\$(curl -s -H "Content-Type: application/json" -X POST \\
-                        -d "{\\"username\\": \\"\$HUB_USER\\", \\"password\\": \\"\$HUB_PAT\\"}" \\
-                        https://hub.docker.com/v2/users/login/ | jq -r .token)
-
-                    if [ -z "\$HUB_TOKEN" ]; then
-                        echo "Hata: Docker JWT tokenı alınamadı. Kimlik bilgilerini kontrol edin."
-                        exit 1
-                    fi
-                    
-                    echo "2. Depodaki tüm etiketler çekiliyor..."
-                    ALL_TAGS=\$(curl -s -H "Authorization: JWT \${HUB_TOKEN}" \\
-                        "https://hub.docker.com/v2/repositories/\$REPO_NAME/tags/?page_size=1000" | jq -r '.results[].name')
-
-                    if [ -z "\$ALL_TAGS" ]; then
-                        echo "Uyarı: Depoda (\${REPO_NAME}) etiket bulunamadı."
-                        exit 0
-                    fi
-
-                    echo "3. Etiketler sıralanıyor ve en son ${env.KEEP_COUNT} tanesi hariç tutuluyor..."
-                    
-                    # Etiketleri Versiyon (sort -V) ve tersten (sort -rV) sırala.
-                    TAGS_TO_DELETE=\$(echo "\$ALL_TAGS" | sort -rV | tail -n +\$(( ${env.KEEP_COUNT} + 1 )))
-                    
-                    if [ -z "\$TAGS_TO_DELETE" ]; then
-                        echo "Silinecek eski sürüm bulunamadı. (${env.KEEP_COUNT} sürüm korunuyor)"
-                        exit 0
-                    fi
-
-                    echo "4. Silinecek Etiketler: \n\${TAGS_TO_DELETE}"
-
-                    echo "5. Etiketler siliniyor..."
-                    
-                    echo "\$TAGS_TO_DELETE" | while read TAG; do
-                        echo "  -> Siliniyor: \${TAG}"
-                        curl -s -X DELETE \\
-                            -H "Authorization: JWT \${HUB_TOKEN}" \\
-                            "https://hub.docker.com/v2/repositories/\$REPO_NAME/tags/\${TAG}/"
-                    done
-                    
-                    echo "Temizleme işlemi tamamlandı."
-                """
-            }
-        }
-    }
-}
+        
 
     }
 /*
