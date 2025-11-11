@@ -155,18 +155,18 @@ pipeline {
         }
 
         stage('Cleanup Old Docker Tags') {
-    environment {
+            environment {
         // Kaç tane son sürümü tutmak istediğiniz
-        KEEP_COUNT = 3
-    }
-    steps {
-        script {
+            KEEP_COUNT = 3
+            }
+            steps {
+                script {
             // Jenkins Credentials'ları (Kullanıcı adı ve PAT) ile kimlik doğrulaması yapılır
-            withCredentials([usernamePassword(
-                credentialsId: env.DOCKER_ID_LOGIN,
-                usernameVariable: 'HUB_USER',
-                passwordVariable: 'HUB_PAT'
-            )]) {
+                    withCredentials([usernamePassword(
+                        credentialsId: env.DOCKER_ID_LOGIN,
+                        usernameVariable: 'HUB_USER',
+                        passwordVariable: 'HUB_PAT'
+                    )]) {
                 sh """#!/usr/bin/env bash
                     set -euo pipefail
                     
@@ -216,10 +216,10 @@ pipeline {
                     
                     echo "Temizleme işlemi tamamlandı."
                 """
+                    }
+                }
             }
         }
-    }
-}
 
     }
 /*

@@ -1,433 +1,387 @@
-# DevOps Pipeline
+(images/devops.png)
 
-## CI/CD Evreni
+# 🚀 AWS DevOps CI/CD & GitOps Pipeline
+
+This repository demonstrates a **production-grade CI/CD & GitOps pipeline** deployed on **AWS EKS**, integrating modern DevOps tools to ensure continuous integration, delivery, and deployment with full automation, quality, and security.
+
+---
+
+## 🧩 Project Overview
+
+This project builds an automated pipeline for a Java (Maven) application that:
+
+- ✅ Pulls source code from **GitHub**
+- ✅ Builds and tests via **Jenkins** (Master-Agent architecture)
+- ✅ Performs **static code analysis** using **SonarQube** with Quality Gates
+- ✅ Runs **dual-layer vulnerability scans** using **Trivy** (filesystem + Docker image)
+- ✅ Builds and pushes Docker images to **DockerHub**
+- ✅ Deploys to **AWS EKS (Kubernetes)** via **ArgoCD (GitOps)**
+- ✅ Auto-scales with **Horizontal Pod Autoscaler (HPA)**
+- ✅ Sends build notifications via **Gmail** (optional)
+
+> **Note:** All infrastructure components (Jenkins, SonarQube, EKS Server) are hosted on **AWS EC2 instances**.  
+> Future versions will include **Terraform automation** for complete infrastructure provisioning.
+
+---
+
+## 🏗️ Architecture Overview
+
+The end-to-end DevOps pipeline workflow:
 
 ```
-
-CI/CD:           (Jenkins, Git,  GitHub, GitOps,  GitHub Actions,    GitLab, GitLab CI,    Bitbucket, Bamboo)
-Scripting        (Python, Bash, PowerShell)
-Containers:      (Docker)
-Orchestration:   (Kubernetes, Helm, ArgoCD)
-Cloud            (AWS, Azure, GCP)
-Virtualization:  (VMware, VirtualBox)
-IaC:             (Terraform, Ansible, CloudFormation)
-Monitoring:      (Prometheus, Grafana, ELK)
+┌─────────────┐
+│   GitHub    │ (Source Code)
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────┐
+│              Jenkins Pipeline                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐     │
+│  │  Build   │→ │ SonarQube│→ │  Trivy   │     │
+│  │  & Test  │  │ Analysis │  │  Scan    │     │
+│  └──────────┘  └──────────┘  └──────────┘     │
+│         │                            │          │
+│         ▼                            ▼          │
+│  ┌──────────────────┐       ┌─────────────┐   │
+│  │  Docker Build    │       │   Trivy     │   │
+│  │  & Push to Hub   │──────→│ Image Scan  │   │
+│  └──────────────────┘       └─────────────┘   │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+       ┌─────────────────┐
+       │  Trigger GitOps │
+       │   CD Pipeline   │
+       └────────┬────────┘
+                │
+                ▼
+       ┌─────────────────┐
+       │     ArgoCD      │ (GitOps Operator)
+       │   Auto-Sync     │
+       └────────┬────────┘
+                │
+                ▼
+       ┌─────────────────┐
+       │   AWS EKS       │
+       │  ┌──────────┐   │
+       │  │   Pods   │   │
+       │  │  (2-10)  │◄──┤ HPA (Auto-scaling)
+       │  └──────────┘   │
+       └─────────────────┘
+                │
+                ▼
+       ┌─────────────────┐
+       │  Gmail Notify   │
+       └─────────────────┘
 ```
-<hr>
 
-![AWS_DevOps.jpg](public/AWS_DevOps.jpg)
+---
 
-#### ReactJS - [Next.js](https://nextjs.org) project [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## 🔄 Pipeline Stages Explained
+
+### 1️⃣ **Code Commit & Trigger**
+- Developers push code to GitHub
+- Jenkins pulls code using GitHub Personal Access Token
+
+### 2️⃣ **Build & Unit Tests**
+- Maven compiles Java application
+- Runs unit tests on Jenkins Agent (Docker-enabled)
+
+### 3️⃣ **SonarQube Code Analysis**
+- Static code analysis for bugs, vulnerabilities, and code smells
+- **Quality Gate** validation (build fails if gate fails)
+- Webhook reports results back to Jenkins
+
+### 4️⃣ **Trivy Security Scans (Dual-Layer)**
+- **Stage 1:** Filesystem scan (checks source code dependencies)
+- **Stage 2:** Docker image scan (checks final containerized application)
+- Generates JSON and HTML reports
+
+### 5️⃣ **Docker Build & Push**
+- Builds Docker image with unique tag (e.g., `v1.0.3`)
+- Pushes to DockerHub repository
+
+### 6️⃣ **GitOps Trigger**
+- Jenkins triggers ArgoCD pipeline via API
+- Updates Kubernetes manifest with new image tag
+- Commits changes to GitOps repository
+
+### 7️⃣ **ArgoCD Deployment**
+- ArgoCD detects manifest changes
+- Automatically syncs to EKS cluster
+- Deploys new Pods with rolling update strategy
+
+### 8️⃣ **Auto-Scaling (HPA)**
+- Monitors CPU usage
+- Scales Pods between 2-10 replicas based on load
+
+### 9️⃣ **Notification**
+- Gmail sends build status (Success/Failure)
+
+---
+
+## 🧰 Tools & Technologies
+
+| Category | Tool / Service | Purpose |
+|----------|----------------|---------|
+| **Cloud** | AWS EC2, EKS | Infrastructure hosting |
+| **CI/CD** | Jenkins (Master-Agent) | Build automation |
+| **Code Quality** | SonarQube + PostgreSQL | Static code analysis |
+| **Security** | Trivy | Vulnerability scanning |
+| **Container** | Docker, DockerHub | Image build & registry |
+| **Orchestration** | Kubernetes (EKS) | Container orchestration |
+| **GitOps** | ArgoCD | Declarative deployment |
+| **Auto-Scaling** | HPA (Horizontal Pod Autoscaler) | Dynamic scaling |
+| **Notification** | Gmail SMTP | Build alerts |
+| **IaC (Planned)** | Terraform | Infrastructure automation |
+
+---
+
+## 📊 Key Features
+
+### ✨ **CI/CD Best Practices**
+- ✅ Separated Jenkins Master-Agent architecture
+- ✅ Pipeline-as-Code (Jenkinsfile in repo)
+- ✅ Automated quality gates
+- ✅ Security-first approach (Trivy scans)
+
+### ✨ **GitOps Workflow**
+- ✅ Declarative Kubernetes manifests
+- ✅ Git as single source of truth
+- ✅ Automatic sync with ArgoCD
+- ✅ Rollback capability
+
+### ✨ **Production-Ready**
+- ✅ Auto-scaling based on metrics
+- ✅ Resource limits defined
+- ✅ High availability (min 2 replicas)
+- ✅ Health checks implemented
+
+---
+
+## ⚙️ Prerequisites
+
+Before starting the installation, ensure you have:
+
+- ✅ **AWS Account** with EC2 and EKS permissions
+- ✅ **AWS CLI** installed and configured (`aws configure`)
+- ✅ **SSH Key Pair** for EC2 instance access
+- ✅ **GitHub Account** with Personal Access Token
+- ✅ **DockerHub Account** with Access Token
+- ✅ **Gmail Account** with App Password (for notifications)
+- ✅ Basic knowledge of Linux, Docker, and Kubernetes
+
+---
+
+## 📘 Installation Guide
+
+For complete step-by-step setup instructions, please refer to:
+
+### 👉 [installation.md](./installation.md)
+
+The guide covers:
+1. Jenkins Master & Agent setup
+2. SonarQube with PostgreSQL configuration
+3. Trivy integration
+4. AWS EKS cluster creation
+5. ArgoCD GitOps setup
+6. HPA configuration
+7. Troubleshooting tips
+
+---
+
+## 🖼️ Screenshots
+
+### Jenkins Pipeline
+![Jenkins Pipeline](images/jenkins-pipeline.png)
+
+### SonarQube Analysis
+![SonarQube Dashboard](images/sonarqube-dashboard.png)
+
+### ArgoCD Application
+![ArgoCD Sync](images/argocd-application.mp4)
+
+### Kubernetes Dashboard
+![K8s Pods](images/kubernetes-pods.png)
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-npm run dev
+# Clone the repository
+git clone https://github.com/sadikgok/devops-03-pipeline-aws-gitops.git
+cd devops-03-pipeline-aws-gitops
+
+# Follow installation.md for detailed setup
+
+# After setup, trigger Jenkins pipeline
+# Jenkins will automatically:
+# 1. Build application
+# 2. Run tests
+# 3. Analyze code quality
+# 4. Scan for vulnerabilities
+# 5. Build Docker image
+# 6. Deploy to EKS via ArgoCD
 ```
 
-http://localhost:3000
+---
 
-<hr>
+## 📁 Repository Structure
 
-##  1. Makine: Jenkins Master Node
+```
+devops-03-pipeline-aws-gitops/
+├── README.md                    # This file
+├── installation.md              # Detailed setup guide
+├── Jenkinsfile                  # CI pipeline definition
+├── images/                      # Documentation screenshots
+│   ├── jenkins-pipeline.png
+│   ├── sonarqube-dashboard.png
+│   ├── argocd-application.png
+│   └── kubernetes-pods.png
+├── kubernetes/                  # K8s manifests (separate GitOps repo)
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── hpa.yaml
+├── src/                         # Java application source
+│   └── main/
+├── pom.xml                      # Maven configuration
+└── .gitignore
+```
+
+---
+
+## 🧪 Testing the Pipeline
+
+### Load Testing (HPA)
+```bash
+# Install Apache Bench
+sudo apt-get install apache2-utils -y
+
+# Generate load
+kubectl get svc  # Get LoadBalancer URL
+ab -n 10000 -c 100 http://<LOADBALANCER_URL>:8080/
+
+# Watch HPA scale pods
+kubectl get hpa -w
+```
+
+### Manual Deployment
+```bash
+# Force ArgoCD sync
+argocd app sync devops-03-pipeline-cd
+
+# Check deployment status
+kubectl get pods
+kubectl get deployments
+kubectl describe hpa
+```
+
+---
+
+## 🧹 Cleanup
 
 ```bash
-aws configure
-```
-
-
-```
-java --version
-docker --version
-jenkins --version
-trivy --version
-sonar-scanner --version
-```
-
-### Docker'da tüm containerları listeledik.
-```
-docker ps -a
-```
-
-```
-docker stop CONTAINER_ID
-docker start CONTAINER_ID
-
-docker ps -a
-```
-
-#### SonarQube için Jenkins makinesinin PUBLIC_IP'sini alıp 9000 portuna gideceğiz.
-
-http://PUBLIC_IP:9000
-
-
-#### React için Jenkins makinesinin PUBLIC_IP'sini alıp 3000 portuna gideceğiz.
-
-http://PUBLIC_IP:3000
-
-
-#### Jenkins için Jenkins makinesinin PUBLIC_IP'sini alıp 8080 portuna gideceğiz.
-
-http://PUBLIC_IP:8080
-
-```
-sudo cat /var/lib/jenkins/secrets/initialAdminPassword
-```
-
-
-
-
-
-
-SonarQube aracını Jenkins'e tanıtmak için Token oluşturuyoruz.
-
-http://SONARIN_KURULU_OLDUGU_MAKINENIN_PUBLIC_IP:9000/admin/users
-
-
-
-SonarQube aracını Jenkins'e tanıtmak için Token oluşturuyoruz.
-
-http://SONARIN_KURULU_OLDUGU_MAKINENIN_PUBLIC_IP:9000/admin/users
-
-
-SonarTokenForJenkins
-squ_AAAAAAAAAAAA
-
-
-SonarQubeQualityGates
-
-
-http://3.233.45.51:9000/admin/webhooks
-
-Create Webhook
-http://3.233.45.51:8080/sonarqube-webhook
-
-Proje adı oluşturduk.
-Projeye özel webhook oluşturulur.
-sonarqube-webhook
-http://3.233.45.51:8080/sonarqube-webhook
-
-
-DockerHub'a gidip Docker Token oluştur.
-MyDockerHubTokenForAWS
-```
-docker login -u YOUR_USERNAME -p  dckr_BBBBBBBBBBB
-```
-
-
-
-Jenkins'e DockerHub'ın Token'ınını tanıt.
-
-dockerhub
-
-
-
-
-## 2. Makineyi MontitoringServer Terrafom üzerinden kuracağız.
-
-D:\workspace\devops-2025\devops-05-pipeline-aws\devops-terraform\02_MontitoringServer
-içindeki 03_install.sh  prometheus ve node_exporter sürümlerini güncelle
-
-https://github.com/prometheus/prometheus/releases/
-
-https://github.com/prometheus/node_exporter/releases
-
-
-```
-cd  D:\workspace\devops-2025\devops-05-pipeline-aws\devops-terraform\02_MontitoringServer
-```
-
-Bunu sadece 1 kere yapmamız yeterli. Burada gerek yok.
-```
-aws configure
-```
-
-```
-terraform init
-terraform plan
-terraform apply -auto-approve
-```
-
-Elastic IP aldık.
-
-
-2. Makineneye MobaXterm üzerinden SSH ile terminalden bağlandık.
-
-Terminale bu komutları yazdık.
-
-```
-sudo systemctl status prometheus
-```
-Ctrl+C ile terminalden çık.
-
-```
-sudo systemctl status node_exporter
-```
-Ctrl+C ile terminalden çık.
-
-```
-sudo systemctl status grafana-server
-```
-Ctrl+C ile terminalden çık.
-
-
-Prometheus'u URLden çalıştır.
-
-http://MonitoringMakinesinin_PUBLIC_IP:9090
-
-
-TAKİP EDİLME KAYDI.
-
-cd /etc/prometheus
-
-```
-sudo nano prometheus.yml
-```
-
-```
-- job_name: "node_exporter"
-  static_configs:
-    - targets: ["MonitoringMakinesinin_PUBLIC_IP:9090"]
-```
-
-
-```
-promtool check config /etc/prometheus/prometheus.yml
-
-curl -X POST http://localhost:9090/-/reload
-```
-
-
-Grafana'ya git.
-http://MonitoringMakinesinin_PUBLIC_IP:3000
-
-Açılış ekranında veri kaynağı (datasources) ekleyeceğiz.
-
-Prometheus'un URL'ini vereceğiz.
-http://MonitoringMakinesinin_PUBLIC_IP:9090
-
+# Delete EKS cluster
+eksctl delete cluster --name my-workspace --region us-east-1
 
-Jenkins'se Prometheus plugin'ini kurduk.
-System tarafına geçip tüm metric verilerini takip etmesini istedik.
+# Clean Docker images on Jenkins Agent
+docker system prune -a -f
 
-JenkinsMakinesininPublicIP'yi al.
-
-
-TAKİP EDİLME KAYDI.
-```
-cd /etc/prometheus
-```
-
-```
-sudo nano prometheus.yml
-```
-
-```
-- job_name: "jenkins"
-  metrics_path: "/prometheus"
-  static_configs:
-    - targets: ["JenkinsMakinesininPublicIP:8080"]
-```
-
-
-```
-promtool check config /etc/prometheus/prometheus.yml
-
-curl -X POST http://localhost:9090/-/reload
-```
-
-
-
-
-Ekleyeceğimiz dashboardlarda veri kaynağını belirteceğiz.
-```
-https://grafana.com/grafana/dashboards/9964-jenkins-performance-and-health-overview/
-```
-Bu URLdeki 9964 bu id değeridir.
-
-
-
-
-### Gmail App passwords
-
-Jenkins üzerinden EMAIL attırmak için Gmail'in "App passwords" hizmetinden yaralanacağoz.
-
-YOUR_MAIL_ID@gmail.com
-
-GMAIL_TOKEN
-
-aaaa bbbb cccc dddd
-
-
-### Docker dangling
-Kullanılmayan imageleri silmek gerekiyor. Makinede dangling birikmesine sebep oluyor.
-https://docs.docker.com/reference/cli/docker/image/prune/
-```
-docker image prune -f
-```
-
-
-### EKS kurulumu
-
-```
-sudo apt update
-sudo apt upgrade -y
-```
-
-
-### AWS CLI v2
-```
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-sudo apt install unzip
-unzip awscliv2.zip
-sudo ./aws/install
-aws --version
-```
-
-### kubectl
-```
-sudo apt install curl
-curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-kubectl version --client
-```
-
-### eksctl
-```
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-cd /tmp
-sudo mv /tmp/eksctl /bin
-eksctl version
-```
-
-
-
-
-
-
-#### EC2 JENKINS_SERVER makineye ADMIN ROLUNU VER.
-AWS'deki CPU sınırlandırmasına takılmamak için us-west-1 bölgesinde Nodelarımızı oluşturacağız.
-
-```
-eksctl create cluster --name my-workspace-cluster \
---region us-west-1 \
---node-type t3.large \
---nodes 2 
-```
-
-
-
-
-```
-kubectl config view
-
-
-kubectl get service
-
-kubectl get svc
-
-kubectl get svc --all-namespaces
-
-kubectl get service -o wide
-
-
-
-kubectl get nodes -o wide
-
-kubectl get pods -o wide
-```
-
-
-
-
-
-### Helm kurulumu
-```
-sudo snap install helm --classic    
-helm version
-```
-
-OR
-
-```
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
-chmod 700 get_helm.sh
-./get_helm.sh
-helm version
+# Stop/Terminate EC2 instances:
+# - JenkinsMaster
+# - JenkinsAgent
+# - SonarQube
+# - EKS-Server
 ```
 
-```
-helm repo add stable https://charts.helm.sh/stable
+---
 
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+## 🐛 Troubleshooting
 
-kubectl create namespace prometheus
+Common issues and solutions are documented in [installation.md - Troubleshooting Section](./installation.md#-13-troubleshooting)
 
-helm install stable prometheus-community/kube-prometheus-stack -n prometheus
+Quick checks:
+```bash
+# Jenkins Agent connection
+ssh ubuntu@<AGENT_IP>
 
-kubectl get pods -n prometheus
-```
+# SonarQube logs
+sudo tail -f /opt/sonarqube/logs/sonar.log
 
+# ArgoCD app status
+argocd app get devops-03-pipeline-cd
 
-CALISTIĞI MAKINENIN PORT numarasını verdik.
-```
-kubectl edit svc stable-kube-prometheus-sta-prometheus -n prometheus
+# Kubernetes pods
+kubectl get pods -n default
+kubectl logs <POD_NAME>
 ```
-Şu ikisini değiştirdik.
 
-targetPort: 9090
+---
 
-type: LoadBalancer
-
-
-
-```
-kubectl get svc -n prometheus
-```
+## 🎯 Next Steps & Roadmap
 
+- [ ] **Terraform Integration** - Automate EC2 and EKS provisioning
+- [ ] **Monitoring Stack** - Add Prometheus + Grafana for metrics
+- [ ] **Logging Stack** - Integrate ELK (Elasticsearch, Logstash, Kibana)
+- [ ] **Slack Notifications** - Replace Gmail with Slack webhooks
+- [ ] **Multi-Environment** - Add Dev, Staging, Production pipelines
+- [ ] **Helm Charts** - Convert manifests to Helm for better management
+- [ ] **Sealed Secrets** - Secure secret management in GitOps
+- [ ] **Service Mesh** - Implement Istio for advanced traffic management
 
-Bu komut bütün her şey kurulduktan sonra en son çalıştırılır.
-```
-sudo reboot
-```
+---
 
-### Webhooks / Add webhook
+## 📚 Learning Resources
 
-#### GitHub'a bir commit yapıldığında Jenkins'in bundan haberdar olmasını ve otomaik çalışmasını istiyoruz.
+- [Jenkins Documentation](https://www.jenkins.io/doc/)
+- [SonarQube Docs](https://docs.sonarqube.org/)
+- [Trivy Security Scanner](https://aquasecurity.github.io/trivy/)
+- [ArgoCD Getting Started](https://argo-cd.readthedocs.io/)
+- [AWS EKS Best Practices](https://aws.github.io/aws-eks-best-practices/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
 
-https://github.com/mimaraslan/devops-05-pipeline-aws/settings/hooks
+---
 
+## 🤝 Contributing
 
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/improvement`)
+3. Commit changes (`git commit -m 'Add new feature'`)
+4. Push to branch (`git push origin feature/improvement`)
+5. Open a Pull Request
 
+---
 
+## 📄 License
 
-#### EKS'DE ÇALIŞAN SADECE DEPLOYMENT'I YOK ETMEK.
-```
-kubectl delete deployment.apps/my-workspace-cluster
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-#### EKS'DE ÇALIŞAN SADECE SERVISI YOK ETMEK.
-```
-kubectl delete service/my-workspace-service
-```
+---
 
-#### EKS'DE ÇALIŞAN SADECE prometheus PODUNU YOK ETMEK.
-```
-kubectl delete --all pods -n prometheus                  
-kubectl delete namespace prometheus
-```
+## 👨‍💻 Author
 
+**Sadık Gök**  
+DevOps Engineer | AWS | Jenkins | Docker | Kubernetes | ArgoCD | Terraform
 
+📫 **Contact:**
+- 🔗 [GitHub](https://github.com/sadikgok)
+- 💼 [LinkedIn](https://linkedin.com/in/sadik-gok)
+- ✉️ Email: sadik.gok@gmail.com
 
-### Elimizle kurduğumuz EKS'deki nodeları ve onların kullandığı tüm AWS kaynaklarını hepten silme komutları
-```
-export AWS_DEFAULT_REGION=us-west-1
-eksctl delete cluster   --name my-workspace-cluster
-```
+---
 
-### Sadece Terraform'un yönettiği kaynakları silme komutu.
-```
-terraform destroy
-```
+## ⭐ Support
 
+If you found this project helpful:
+- ⭐ **Star this repository**
+- 👁️ **Watch for updates**
+- 🍴 **Fork to customize**
+- 📢 **Share with the DevOps community**
 
+---
 
+**Built with ❤️ for the DevOps Community**
 
+*Last Updated: November 2025*
