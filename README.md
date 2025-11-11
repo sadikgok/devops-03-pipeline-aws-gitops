@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-<img width="1552" height="734" alt="devops" src="images/devops.png" />
-=======
-
 <img width="1552" height="734" alt="devops" src="https://github.com/user-attachments/assets/4982b80a-00c5-4646-9ea8-a18ea598a036" />
->>>>>>> 3151701d5631eb1c855dcaf575a821097eb52abf
 
 # 🚀 AWS DevOps CI/CD & GitOps Pipeline
 
