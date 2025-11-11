@@ -1,5 +1,4 @@
-![Açıklayıcı Metin (Örn: DevOps Süreci)](images/devops.png)
-<img width="1552" height="734" alt="devops" src="https://github.com/user-attachments/assets/4982b80a-00c5-4646-9ea8-a18ea598a036" />
+![(CI/CD & GitOps Pipeline)](images/devops.png)
 
 # 🚀 AWS DevOps CI/CD & GitOps Pipeline
 
