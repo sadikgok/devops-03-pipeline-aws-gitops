@@ -1,4 +1,4 @@
-[CI/CD & GitOps Pipeline](images/devops.png)
+<img width="1552" height="734" alt="devops" src="images/devops.png" />
 
 # 🚀 AWS DevOps CI/CD & GitOps Pipeline
 
