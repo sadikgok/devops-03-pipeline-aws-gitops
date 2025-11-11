@@ -1,4 +1,4 @@
-(images/devops.png)
+[CI/CD & GitOps Pipeline](images/devops.png)
 
 # 🚀 AWS DevOps CI/CD & GitOps Pipeline
 
