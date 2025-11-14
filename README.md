@@ -177,7 +177,7 @@ Before starting the installation, ensure you have:
 
 For complete step-by-step setup instructions, please refer to:
 
-### 👉 [installation.md](./installation.md)
+### 👉 [installation.md](./Installation.md)
 
 The guide covers:
 1. Jenkins Master & Agent setup
